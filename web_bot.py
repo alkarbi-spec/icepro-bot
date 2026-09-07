@@ -7,7 +7,7 @@ from aiogram.types import Message
 from aiogram.filters import CommandStart, Command
 from aiohttp import web
 
-TOKEN = "8829675416:AAGqYBN2XTLGeL-ImYBqXT1Cra5aiskXPQA"
+TOKEN = "8829675416:AAEQqRRlK3CGxCv0I253urtJreDV7pT_gOM"
 GROUP_ID = -1003218790551
 PUBLIC_CHAT_ID = -1003503911588
 
