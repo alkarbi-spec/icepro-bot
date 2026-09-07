@@ -32,17 +32,17 @@ async def post_to_public(message: Message):
 
     command_text = message.text
     if len(command_text) <= 5:
-        await message.reply("⚠️ Вы не написали текст решения. Пример:\n`/post Внимание, тренировка переносится`", parse_mode="Markdown")
+        await message.reply("⚠️ Вы не написали текст решения. Пример:\n/post Внимание, тренировка переносится")
         return
 
     post_content = command_text[5:].strip()
     official_announcement = (
-        f"📢 **ОФИЦИАЛЬНОЕ РЕШЕНИЕ СОВЕТА ICEPRO** 📢\n\n"
+        "📢 ОФИЦИАЛЬНОЕ РЕШЕНИЕ СОВЕТА ICEPRO 📢\n\n"
         f"{post_content}"
     )
 
     try:
-        await bot.send_message(PUBLIC_CHAT_ID, official_announcement, parse_mode="Markdown")
+        await bot.send_message(PUBLIC_CHAT_ID, official_announcement)
         await message.react([{"type": "emoji", "emoji": "🔥"}])
     except Exception as e:
         await message.reply(f"❌ Ошибка публикации: {e}")
@@ -58,13 +58,13 @@ async def forward_to_group(message: Message):
     full_name = f"{user.first_name or ''} {user.last_name or ''}".strip()
 
     text_for_council = (
-        f"📩 **Вопрос от игрока!**\n"
+        "📩 Новый вопрос от игрока!\n"
         f"👤 От: {full_name} ({username})\n"
-        f"🆔 ID игрока: `{user.id}`\n\n"
+        f"🆔 ID игрока: {user.id}\n\n"
         f"💬 Текст:\n{message.text}"
     )
 
-    await bot.send_message(GROUP_ID, text_for_council, parse_mode="Markdown")
+    await bot.send_message(GROUP_ID, text_for_council)
     await message.answer("✅ Твой вопрос отправлен Совету ICEPRO. Скоро вернемся с ответом!")
 
 # 4. Ответ из чата Совета игроку
@@ -80,17 +80,17 @@ async def reply_from_council(message: Message):
                 lines = replied_text.split('\n')
                 for line in lines:
                     if "🆔 ID игрока:" in line:
-                        target_id = int(line.replace("🆔 ID игрока:", "").replace("`", "").strip())
+                        target_id = int(line.replace("🆔 ID игрока:", "").strip())
                         await bot.send_message(
                             target_id, 
-                            f"📢 **Ответ от Совета ICEPRO:**\n\n{message.text}"
+                            f"📢 Ответ от Совета ICEPRO:\n\n{message.text}"
                         )
                         await message.react([{"type": "emoji", "emoji": "👍"}])
                         break
             except Exception as e:
                 print(f"Ошибка при отправке ответа: {e}")
 
-# Заглушка для веб-сервера (чтобы Render не отключал бота)
+# Веб-сервер для Render
 async def handle(request):
     return web.Response(text="Icepro Bot is running!")
 
@@ -100,16 +100,15 @@ async def web_server():
     runner = web.AppRunner(app)
     await runner.setup()
     port = int(os.environ.get("PORT", 8080))
-    site = web.साइट(runner, "0.0.0.0", port) if hasattr(web, 'साइट') else web.TCPSite(runner, "0.0.0.0", port)
+    site = web.TCPSite(runner, "0.0.0.0", port)
     await site.start()
 
 async def main():
-    # Запускаем и бота, и веб-сервер одновременно
     await asyncio.gather(
         dp.start_polling(bot),
         web_server()
-    )    
+    )
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO, stream=sys.stdout)
-    asyncio.run(main())   
+    asyncio.run(main())
