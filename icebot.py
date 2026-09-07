@@ -104,7 +104,7 @@ async def reply_from_council(message: Message, bot: Bot):
 async def main():
     bot = Bot(token=TOKEN)
     print("Бот обновлен и полностью готов к работе!")
-    await dp.start_polling(bot)
+    await dp.start_polling(bot)   
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO, stream=sys.stdout)
