@@ -1,15 +1,22 @@
 import os
-import asyncio
 import logging
 import sys
 from aiogram import Bot, Dispatcher, F
 from aiogram.types import Message
 from aiogram.filters import CommandStart, Command
+from aiogram.webhook.aiohttp_server import SimpleRequestHandler, setup_application
 from aiohttp import web
 
-TOKEN = "8829675416:AAEQqRRlK3CGxCv0I253urtJreDV7pT_gOM"
+TOKEN = "ТВОЙ_НОВЫЙ_ТОКЕН"
 GROUP_ID = -1003218790551
 PUBLIC_CHAT_ID = -1003503911588
+
+# Твоя публичная ссылка с Render (без слэша на конце!)
+WEBHOOK_URL = "https://icepro-bot-1.onrender.com"
+WEBHOOK_PATH = f"/webhook/{TOKEN}"
+BASE_WEBHOOK_URL = f"{WEBHOOK_URL}{WEBHOOK_PATH}"
+
+PORT = int(os.environ.get("PORT", 8080))
 
 dp = Dispatcher()
 bot = Bot(token=TOKEN)
@@ -86,28 +93,27 @@ async def reply_from_council(message: Message):
             except Exception as e:
                 print(f"Ошибка при отправке ответа: {e}")
 
-# Веб-сервер
-async def handle(request):
-    return web.Response(text="Icepro Bot is running!")
+async def on_startup(bot: Bot):
+    # Устанавливаем вебхук при запуске
+    await bot.set_webhook(BASE_WEBHOOK_URL)
 
-async def web_server():
-    app = web.Application()
-    app.router.add_get("/", handle)
-    runner = web.AppRunner(app)
-    await runner.setup()
-    port = int(os.environ.get("PORT", 8080))
-    site = web.TCPSite(runner, "0.0.0.0", port)
-    await site.start()
-
-async def main():
-    # Очищаем зависшие старые вебхуки/сессии перед запуском
-    await bot.delete_webhook(drop_pending_updates=True)
+def main():
+    logging.basicConfig(level=logging.INFO, stream=sys.stdout)
     
-    await asyncio.gather(
-        dp.start_polling(bot),
-        web_server()
+    app = web.Application()
+    
+    # Регистрируем обработчик вебхука от aiogram
+    webhook_requests_handler = SimpleRequestHandler(
+        dispatcher=dp,
+        bot=bot,
     )
+    webhook_requests_handler.register(app, path=WEBHOOK_PATH)
+    
+    # Настраиваем приложение
+    setup_application(app, dp, bot=bot)
+    app.on_startup.append(lambda app: on_startup(bot))
+    
+    web.run_app(app, host="0.0.0.0", port=PORT)
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO, stream=sys.stdout)
-    asyncio.run(main()) 
+    main()
