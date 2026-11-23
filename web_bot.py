@@ -1,22 +1,26 @@
-import asyncio
+import os
 import logging
 import sys
 from aiogram import Bot, Dispatcher, F
 from aiogram.types import Message
 from aiogram.filters import CommandStart, Command
+from aiogram.webhook.aiohttp_server import SimpleRequestHandler, setup_application
+from aiohttp import web
 
-# Твой актуальный токен
 TOKEN = "8829675416:AAEQqRRlK3CGxCv0I253urtJreDV7pT_gOM"
 
-# ID твоего чата Совета
 GROUP_ID = -1003218790551
-
-# ID Общего чата команды
 PUBLIC_CHAT_ID = -1003503911588
 
-dp = Dispatcher()
+WEBHOOK_URL = "https://icepro-bot-1.onrender.com"
+WEBHOOK_PATH = f"/webhook/{TOKEN}"
+BASE_WEBHOOK_URL = f"{WEBHOOK_URL}{WEBHOOK_PATH}"
 
-# 1. Приветствие для игроков в ЛС
+PORT = int(os.environ.get("PORT", 8080))
+
+dp = Dispatcher()
+bot = Bot(token=TOKEN)
+
 @dp.message(CommandStart())
 async def cmd_start(message: Message):
     await message.answer(
@@ -25,9 +29,8 @@ async def cmd_start(message: Message):
         "и я передам его Совету команды."
     )
 
-# 2. Публикация решений через /post в чате Совета
 @dp.message(Command("post"))
-async def post_to_public(message: Message, bot: Bot):
+async def post_to_public(message: Message):
     if message.chat.id != GROUP_ID:
         await message.reply("⚠️ Эту команду можно использовать только в чате Совета!")
         return
@@ -49,9 +52,8 @@ async def post_to_public(message: Message, bot: Bot):
     except Exception as e:
         await message.reply(f"❌ Ошибка публикации: {e}")
 
-# 3. Пересылка вопросов в чат Совета из ЛС
 @dp.message(F.chat.type == "private")
-async def forward_to_group(message: Message, bot: Bot):
+async def forward_to_group(message: Message):
     if message.text and message.text.startswith('/'):
         return
 
@@ -69,9 +71,8 @@ async def forward_to_group(message: Message, bot: Bot):
     await bot.send_message(GROUP_ID, text_for_council)
     await message.answer("✅ Твой вопрос отправлен Совету ICEPRO. Скоро вернемся с ответом!")
 
-# 4. Ответ из чата Совета игроку через Reply
 @dp.message(F.chat.id == GROUP_ID)
-async def reply_from_council(message: Message, bot: Bot):
+async def reply_from_council(message: Message):
     if message.text and message.text.startswith('/'):
         return
 
@@ -92,13 +93,23 @@ async def reply_from_council(message: Message, bot: Bot):
             except Exception as e:
                 print(f"Ошибка при отправке ответа: {e}")
 
-async def main():
-    bot = Bot(token=TOKEN)
-    # Сбрасываем старые зависшие вебхуки, чтобы бот мог работать через polling
-    await bot.delete_webhook(drop_pending_updates=True)
-    print("Бот запущен в облаке (Polling)...")
-    await dp.start_polling(bot)
+async def on_startup(bot: Bot):
+    await bot.set_webhook(BASE_WEBHOOK_URL)
+
+def main():
+    logging.basicConfig(level=logging.INFO, stream=sys.stdout)
+    app = web.Application()
+    
+    webhook_requests_handler = SimpleRequestHandler(
+        dispatcher=dp,
+        bot=bot,
+    )
+    webhook_requests_handler.register(app, path=WEBHOOK_PATH)
+    
+    setup_application(app, dp, bot=bot)
+    app.on_startup.append(lambda app: on_startup(bot))
+    
+    web.run_app(app, host="0.0.0.0", port=PORT)
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO, stream=sys.stdout)
-    asyncio.run(main())
+    main()
