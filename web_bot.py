@@ -6,7 +6,7 @@ from aiogram.types import Message
 from aiogram.filters import CommandStart, Command
 
 # Твой актуальный токен
-TOKEN = "8829675416:AAGqYBN2XTLGeL-ImYBqXT1Cra5aiskXPQA"
+TOKEN = "8829675416:AAEQqRRlK3CGxCv0I253urtJreDV7pT_gOM"
 
 # ID твоего чата Совета
 GROUP_ID = -1003218790551
