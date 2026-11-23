@@ -93,12 +93,19 @@ async def reply_from_council(message: Message):
             except Exception as e:
                 print(f"Ошибка при отправке ответа: {e}")
 
+# Функция для ответа пингеру (чтобы UptimeRobot видел 200 OK)
+async def handle(request):
+    return web.Response(text="Bot is alive!", status=200)
+
 async def on_startup(bot: Bot):
     await bot.set_webhook(BASE_WEBHOOK_URL)
 
 def main():
     logging.basicConfig(level=logging.INFO, stream=sys.stdout)
     app = web.Application()
+    
+    # Добавляем обработчик для главной страницы сайта
+    app.router.add_get("/", handle)
     
     webhook_requests_handler = SimpleRequestHandler(
         dispatcher=dp,
